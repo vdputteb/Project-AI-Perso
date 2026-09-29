@@ -16,9 +16,9 @@ import random
 # ---------------------------------------------------------------------------
 # Hyperparamètres
 # ---------------------------------------------------------------------------
-N_INPUTS = 2
-N_HIDDEN = 4
-N_OUTPUTS = 1
+N_INPUTS = 2 # nombre d'entrées
+N_HIDDEN = 4 # nombres neurones
+N_OUTPUTS = 1 # 1 seule sortie
 LEARNING_RATE = 0.5
 EPOCHS = 1000000
 

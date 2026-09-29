@@ -30,9 +30,15 @@ class AbstractCar:
 
     IMG = None
     START_POS = (0, 0)
-    START_ANGLE = 90.0  # degrees; 90 = facing north
+    START_ANGLE = 0.0  # degrees; 0 = facing right (east)
 
     def __init__(self, max_vel: float, rotation_vel: float):
+        # Subclasses may already have set self.img (PlayerCar loads its own
+        # file per instance); otherwise fall back to the IMG class
+        # attribute (AgentCar shares one image across the whole population).
+        self.img = getattr(self, "img", self.IMG)
+        self.img = pygame.transform.scale(self.img, (50,35))
+
         self.max_vel = max_vel
         self.rotation_vel = rotation_vel
 
@@ -62,6 +68,17 @@ class AbstractCar:
         elif self.vel < 0:
             self.vel = min(self.vel + self.acceleration / 2, 0)
 
+    def drive(self, steer: float, throttle: float) -> None:
+        """Continuous control, used by neural-network-driven cars instead
+        of rotate()/accelerate()/brake(). steer and throttle are expected
+        in [-1, 1] (e.g. straight out of a tanh output layer)."""
+        self.angle += steer * self.rotation_vel
+
+        if throttle >= 0:
+            self.vel = min(self.vel + throttle * self.acceleration, self.max_vel)
+        else:
+            self.vel = max(self.vel + throttle * self.acceleration, -self.max_vel / 2)
+
     # ---- movement --------------------------------------------------------
     def move(self) -> None:
         radians = math.radians(self.angle)
@@ -83,12 +100,11 @@ class AbstractCar:
 
 
 class PlayerCar(AbstractCar):
-    START_POS = (100, 350)
+    START_POS = (100, 400)
     START_ANGLE = 90.0
 
     def __init__(self, image_path: str, max_vel: float = 5.0, rotation_vel: float = 4.0):
         # Loaded here (rather than as a class attribute) so it only touches
         # pygame.image once a display exists, and each car can use its own art.
         self.img = pygame.image.load(image_path).convert_alpha()
-        self.img = pygame.transform.scale(self.img, (50,35))
         super().__init__(max_vel, rotation_vel)
