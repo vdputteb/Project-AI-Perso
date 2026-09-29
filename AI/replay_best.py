@@ -15,16 +15,17 @@ from AI.agent import AgentCar
 from AI.neural_network import NeuralNetwork
 from game.circuit import load_circuit, draw_circuit, build_wall_mask
 from game.rules import car_has_lost
-from game.track import generate_checkpoints
+from game.track import generate_checkpoints, draw_checkpoints
 
-CIRCUIT_IMAGE_PATH = "circuit.png"
-CAR_IMAGE_PATH = "car.png"
+CIRCUIT_IMAGE_PATH = "game/img/circuit2.png"
+CAR_IMAGE_PATH = "game/img/car1.png"
 BEST_BRAIN_PATH = "best_brain.json"
 
 CAR_MAX_VEL = 6.0
 CAR_ROTATION_VEL = 5.0
 SENSOR_MAX_DISTANCE = 220.0
 FPS = 60
+SHOW_CHECKPOINTS = True
 
 
 def load_brain(path: str) -> NeuralNetwork:
@@ -83,6 +84,8 @@ def main() -> None:
                 car.update_progress(checkpoints)
 
         draw_circuit(screen, circuit_img)
+        if SHOW_CHECKPOINTS:
+            draw_checkpoints(screen, checkpoints)
         car.draw(screen)
 
         status = "EN VIE" if car.alive else "CRASHÉE — R pour relancer"

@@ -24,9 +24,10 @@ import pygame
 from AI.agent import AgentCar
 from AI.genetic import next_generation, mutate
 from AI.neural_network import NeuralNetwork
+from game import track
 from game.circuit import load_circuit, draw_circuit, build_wall_mask
 from game.rules import car_has_lost
-from game.track import generate_checkpoints
+from game.track import generate_checkpoints, draw_checkpoints
 
 
 # ---------------------------------------------------------------------------
@@ -49,11 +50,12 @@ CAR_ROTATION_VEL = 5.0
 SENSOR_MAX_DISTANCE = 220.0
 
 MAX_FRAMES_PER_GEN = 1800   # ~30s à 60 fps : filet de sécurité si tout survit
-MAX_STALL_FRAMES = 150      # ~2.5s sans nouveau checkpoint -> voiture éliminée
+MAX_STALL_FRAMES = 850      # ~2.5s sans nouveau checkpoint -> voiture éliminée
 
 RENDER_EVERY_N_GENERATIONS = 1   # 1 = toujours afficher ; augmente pour aller plus vite
 DISPLAY_FPS = 60                 # limite d'images/seconde quand une génération est affichée
 SAVE_EVERY_N_GENERATIONS = 10
+SHOW_CHECKPOINTS = True          # affiche les checkpoints (cercles jaunes) par-dessus le circuit
 
 
 # ---------------------------------------------------------------------------
@@ -81,8 +83,12 @@ def step_car(car, wall_mask, checkpoints, bounds) -> None:
     car.update_progress(checkpoints, MAX_STALL_FRAMES)
 
 
-def draw_generation(screen, circuit_img, cars, generation, font) -> None:
+def draw_generation(screen, circuit_img, cars, checkpoints, generation, font) -> None:
     draw_circuit(screen, circuit_img)
+
+    if SHOW_CHECKPOINTS:
+        draw_checkpoints(screen, checkpoints)
+
     for car in cars:
         if car.alive:
             car.draw(screen)
@@ -118,7 +124,7 @@ def run_generation(cars, wall_mask, checkpoints, bounds, screen, circuit_img,
             break
 
         if render:
-            draw_generation(screen, circuit_img, cars, generation, font)
+            draw_generation(screen, circuit_img, cars, checkpoints, generation, font)
             clock.tick(DISPLAY_FPS)  # limité pour rester regardable à l'œil nu
         else:
             clock.tick(0)  # pas de limite de FPS quand on n'affiche pas
@@ -168,8 +174,15 @@ def main() -> None:
     screen = pygame.display.set_mode((width, height))
     circuit_img = circuit_img.convert()
 
-    wall_mask, _ = build_wall_mask(circuit_img)
-    checkpoints = generate_checkpoints()
+    wall_mask, mask_surface = build_wall_mask(circuit_img)
+    is_wall = pygame.surfarray.array_alpha(mask_surface) > 0
+
+    checkpoints = track.generate_checkpoints(
+        is_wall,
+        start=(100, 400),   # position de départ de la voiture
+        heading=(0, -1),       # sa direction initiale, ex. (0, -1) = vers le haut
+        spacing=40,
+    )
 
     AgentCar.IMG = pygame.image.load(CAR_IMAGE_PATH).convert_alpha()
     font = pygame.font.SysFont(None, 24)
