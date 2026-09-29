@@ -18,14 +18,13 @@ best_brain.json — utilise replay_best.py pour le regarder rouler seul.
 
 import json
 import sys
-import time
 
 import pygame
 
 from AI.agent import AgentCar
-from game.circuit import load_circuit, draw_circuit, build_wall_mask
-from AI.genetic import next_generation
+from AI.genetic import next_generation, mutate
 from AI.neural_network import NeuralNetwork
+from game.circuit import load_circuit, draw_circuit, build_wall_mask
 from game.rules import car_has_lost
 from game.track import generate_checkpoints
 
@@ -131,6 +130,35 @@ def save_best_weights(weights: list, path: str = BEST_BRAIN_PATH) -> None:
     print(f"Meilleur cerveau sauvegardé dans {path}")
 
 
+def load_saved_weights(path: str = BEST_BRAIN_PATH):
+    """Retourne les poids sauvegardés, ou None si le fichier n'existe pas
+    ou correspond à une architecture différente (LAYER_SIZES changé)."""
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return None
+
+    if data.get("layer_sizes") != LAYER_SIZES:
+        print(f"{path} correspond à une architecture différente "
+              f"({data.get('layer_sizes')} au lieu de {LAYER_SIZES}) "
+              "— on repart de zéro plutôt que de charger des poids incompatibles.")
+        return None
+
+    return data["weights"]
+
+
+def seed_population_from_weights(best_weights: list, population_size: int) -> list:
+    """Première génération construite à partir d'un cerveau déjà entraîné :
+    une copie exacte (élitisme, pour ne jamais perdre ce qui a déjà été
+    appris) + le reste légèrement mutées pour continuer à explorer autour
+    de cette solution plutôt que de repartir de poids aléatoires."""
+    population = [list(best_weights)]
+    while len(population) < population_size:
+        population.append(mutate(list(best_weights), mutation_rate=0.2, mutation_amount=0.4))
+    return population
+
+
 def main() -> None:
     pygame.init()
     pygame.display.set_caption("Entraînement — Circuit Racer IA")
@@ -146,18 +174,24 @@ def main() -> None:
     AgentCar.IMG = pygame.image.load(CAR_IMAGE_PATH).convert_alpha()
     font = pygame.font.SysFont(None, 24)
 
-    weights_list = [NeuralNetwork(LAYER_SIZES).get_weights() for _ in range(POPULATION_SIZE)]
+    saved_weights = load_saved_weights(BEST_BRAIN_PATH)
+    if saved_weights is not None:
+        print(f"Reprise de l'entraînement à partir de {BEST_BRAIN_PATH}.")
+        weights_list = seed_population_from_weights(saved_weights, POPULATION_SIZE)
+        best_ever_weights = saved_weights
+    else:
+        print("Aucun cerveau sauvegardé trouvé — nouvel entraînement depuis zéro.")
+        weights_list = [NeuralNetwork(LAYER_SIZES).get_weights() for _ in range(POPULATION_SIZE)]
+        best_ever_weights = None
 
     generation = 0
-    best_ever_weights = None
     best_ever_fitness = float("-inf")
 
     try:
         while True:
             generation += 1
             cars = spawn_population(weights_list)
-            render = True
-
+            render = (generation % RENDER_EVERY_N_GENERATIONS == 0)
 
             run_generation(cars, wall_mask, checkpoints, (width, height),
                            screen, circuit_img, font, generation, render,
