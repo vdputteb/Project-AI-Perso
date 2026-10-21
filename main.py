@@ -30,7 +30,7 @@ from game.rules import car_has_lost
 # ---------------------------------------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------------------------------------
-CIRCUIT_IMAGE_PATH = "./game/img/circuit.png"
+CIRCUIT_IMAGE_PATH = "./game/img/circuit2.png"
 CAR_IMAGE_PATH = "./game/img/car1.png"
 
 CAR_MAX_VEL = 7.0

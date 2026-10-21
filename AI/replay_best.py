@@ -19,7 +19,7 @@ from game.track import generate_checkpoints, draw_checkpoints
 
 CIRCUIT_IMAGE_PATH = "game/img/circuit2.png"
 CAR_IMAGE_PATH = "game/img/car1.png"
-BEST_BRAIN_PATH = "best_brain.json"
+BEST_BRAIN_PATH = "/brains/average.json"
 
 CAR_MAX_VEL = 6.0
 CAR_ROTATION_VEL = 5.0
